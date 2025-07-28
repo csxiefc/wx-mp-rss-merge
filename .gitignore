@@ -146,5 +146,5 @@ config/local_config.yaml
 Thumbs.db 
 
 
-config
-docker
+config/
+docker/

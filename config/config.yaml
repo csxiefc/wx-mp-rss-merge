@@ -1,6 +1,6 @@
 # 数据库配置
 database:
-  host: "106.13.63.117"
+  host: "0.0.0.0"
   port: 3306
   user: "root"
   password: "StrongPass123!"
@@ -38,7 +38,7 @@ file:
   # 文件存储目录
   storage_path: "./storage"
   # 文件访问URL前缀（生产环境）
-  url_prefix_prod: "http://106.13.63.117:8002/files"
+  url_prefix_prod: "http://0.0.0.0:8002/files"
   # 文件访问URL前缀（开发环境）
   url_prefix_dev: "http://localhost:8002/files"
   # 当前使用的URL前缀（自动设置）

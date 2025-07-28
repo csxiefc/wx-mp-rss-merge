@@ -66,7 +66,7 @@ pip install -e .
 
 ```yaml
 database:
-  host: "106.13.63.117"
+  host: "0.0.0.0"
   port: 3306
   user: "root"
   password: "StrongPass123!"
@@ -87,7 +87,7 @@ data:
 
 file:
   storage_path: "./storage"
-  url_prefix_prod: "http://106.13.63.117:8002/files"  # 生产环境URL
+  url_prefix_prod: "http://0.0.0.0:8002/files"  # 生产环境URL
   url_prefix_dev: "http://localhost:8002/files"       # 开发环境URL
   url_prefix: "http://localhost:8002/files"           # 当前使用的URL（自动设置）
 ```

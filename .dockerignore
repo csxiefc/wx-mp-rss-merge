@@ -1,0 +1,77 @@
+# Git相关
+.git
+.gitignore
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虚拟环境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 测试相关
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# 文档
+docs/
+*.md
+!README.md
+
+# 临时文件
+*.tmp
+*.temp
+
+# 存储文件（在容器中重新创建）
+storage/
+backup/
+
+# Docker相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 系统文件
+.DS_Store
+Thumbs.db 

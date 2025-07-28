@@ -1,0 +1,45 @@
+# 数据库配置
+database:
+  host: "106.13.63.117"
+  port: 3306
+  user: "root"
+  password: "StrongPass123!"
+  database: "wewe-rss"
+  charset: "utf8mb4"
+
+# 应用配置
+app:
+  host: "0.0.0.0"
+  port: 8002
+  debug: true
+
+# 安全配置
+security:
+  # API密钥认证
+  api_key_required: false
+  api_key: "your-secret-api-key-2024"
+  # 请求频率限制
+  rate_limit_enabled: true
+  rate_limit_requests: 10  # 每分钟请求次数
+  rate_limit_window: 60    # 时间窗口（秒）
+  # IP白名单（可选）
+  ip_whitelist_enabled: false
+  ip_whitelist: ["127.0.0.1", "localhost"]
+  # 请求大小限制
+  max_content_length: 16777216  # 16MB
+
+# 数据配置
+data:
+  # 获取最近几天的文章，1表示当天，3表示最近3天
+  recent_days: 3
+
+# 文件存储配置
+file:
+  # 文件存储目录
+  storage_path: "./storage"
+  # 文件访问URL前缀（生产环境）
+  url_prefix_prod: "http://106.13.63.117:8002/files"
+  # 文件访问URL前缀（开发环境）
+  url_prefix_dev: "http://localhost:8002/files"
+  # 当前使用的URL前缀（自动设置）
+  url_prefix: "http://localhost:8002/files" 

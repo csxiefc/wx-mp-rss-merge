@@ -1,6 +1,6 @@
 # 微信公众号RSS合并服务
 
-这是一个Python Flask应用，用于从MySQL数据库中读取微信公众号和文章数据，生成合并的JSON文件。
+这是一个Python Flask应用，用于从MySQL数据库中读取微信公众号和文章数据，生成合并的JSON文件，并支持自动上传到GitHub仓库的指定目录。
 
 ## 功能特性
 
@@ -10,6 +10,9 @@
 - 提供RESTful API接口
 - 支持文件下载
 - 自动清理旧文件
+- **新增：自动上传JSON文件到GitHub仓库**
+- **新增：支持文件存在时自动替换更新**
+- **新增：支持指定上传目录路径**
 
 ## 项目结构
 
@@ -83,7 +86,11 @@ app:
   debug: true
 
 data:
-  recent_days: 3  # 获取最近3天的文章
+  recent_days: 0  # 获取当天的数据（从00:00:00开始）
+  # 可选值：
+  # 0: 获取当天的数据（从00:00:00开始）
+  # 1: 获取最近1天的数据
+  # 3: 获取最近3天的数据
 
 file:
   storage_path: "./storage"
@@ -92,7 +99,50 @@ file:
   url_prefix: "http://localhost:8002/files"           # 当前使用的URL（自动设置）
 ```
 
-### 4. 环境配置
+### 4. 配置GitHub上传功能（可选）
+
+#### 4.1 获取GitHub个人访问令牌
+
+1. 登录GitHub
+2. 进入 Settings > Developer settings > Personal access tokens > Tokens (classic)
+3. 点击 "Generate new token (classic)"
+4. 选择权限：`repo` (完整的仓库访问权限)
+5. 生成令牌并复制保存
+
+#### 4.2 设置环境变量
+
+**Windows:**
+```cmd
+set GITHUB_TOKEN=your_github_token_here
+```
+
+**Linux/Mac:**
+```bash
+export GITHUB_TOKEN=your_github_token_here
+```
+
+#### 4.3 配置文件
+
+在 `config/config.yaml` 中添加GitHub配置：
+
+```yaml
+# GitHub配置
+github:
+  # 是否启用GitHub上传功能
+  enabled: true
+  # GitHub个人访问令牌（从环境变量获取）
+  token: "${GITHUB_TOKEN}"
+  # 仓库名称
+  repo_name: "csxiefc/wx-mp-rss-merge"
+  # 目标分支
+  branch: "main"
+  # 是否在生成JSON后自动上传
+  auto_upload: true
+  # 上传目录路径（可选）
+  upload_path: "testres"
+```
+
+### 5. 环境配置
 
 系统会根据 `ENVIRONMENT` 环境变量自动选择合适的URL前缀：
 
@@ -177,7 +227,7 @@ scripts/run_tests.bat
 
 **接口地址：** `GET /generate`
 
-**功能：** 从数据库读取数据并生成JSON文件
+**功能：** 从数据库读取数据并生成JSON文件，可选自动上传到GitHub
 
 **返回格式：**
 ```json
@@ -185,6 +235,13 @@ scripts/run_tests.bat
   "code": 200,
   "msg": "成功",
   "fileUrl": "http://localhost:8002/files/result.json",
+  "github": {
+    "uploaded": true,
+    "github_url": "https://github.com/csxiefc/wx-mp-rss-merge/blob/main/testres/result.json",
+    "repo": "csxiefc/wx-mp-rss-merge",
+    "branch": "main",
+    "upload_path": "testres"
+  },
   "data": {
     "filename": "result.json",
     "record_count": 150,
@@ -192,6 +249,12 @@ scripts/run_tests.bat
   }
 }
 ```
+
+**GitHub上传状态说明：**
+- `uploaded: true` - 上传成功
+- `uploaded: false` - 上传失败，查看 `error` 字段了解失败原因
+- `reason: "GitHub功能未启用"` - GitHub功能未配置
+- `upload_path` - 显示上传的目录路径
 
 ### 2. 下载文件
 
@@ -306,6 +369,17 @@ curl http://localhost:8002/files/result.json
 curl http://localhost:8002/health
 ```
 
+### 测试GitHub上传功能
+```bash
+python test_github_upload.py
+```
+
+### 查看上传结果
+访问GitHub仓库查看上传的文件：
+```
+https://github.com/csxiefc/wx-mp-rss-merge/blob/main/testres/result.json
+```
+
 ## 开发指南
 
 ### 项目结构说明
@@ -343,11 +417,12 @@ curl http://localhost:8002/health
 2. **文件生成失败：** 检查storage目录权限
 3. **服务启动失败：** 检查端口是否被占用
 4. **模块导入失败：** 检查Python路径和依赖安装
+5. **GitHub上传失败：** 
+   - 检查 `GITHUB_TOKEN` 环境变量是否正确设置
+   - 确认令牌有足够的权限（需要 `repo` 权限）
+   - 检查网络连接是否正常
+   - 查看应用日志了解详细错误信息
 
 ## 日志
 
-服务运行日志保存在 `app.log` 文件中，可以通过查看日志来诊断问题。
-
-## 许可证
-
-MIT License 
+服务运行日志保存在 `

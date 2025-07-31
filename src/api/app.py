@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.core.database import DatabaseManager
 from src.core.data_processor import DataProcessor
 from src.utils.file_manager import FileManager
+from src.utils.github_uploader import GitHubUploader
 from src.utils.security import (
     require_api_key, 
     require_ip_whitelist, 
@@ -70,7 +71,11 @@ def generate_json():
         config = load_config()
         recent_days = config['data']['recent_days']
         
-        logger.info(f"开始生成JSON文件，获取最近{recent_days}天的数据")
+        # 根据recent_days的值显示不同的日志信息
+        if recent_days == 0:
+            logger.info("开始生成JSON文件，获取当天的数据")
+        else:
+            logger.info(f"开始生成JSON文件，获取最近{recent_days}天的数据")
         
         # 初始化组件
         file_manager = FileManager()
@@ -102,14 +107,76 @@ def generate_json():
             
             logger.info(f"JSON文件生成成功: {filename}")
             
+            # GitHub上传功能
+            github_info = {}
+            if config.get('github', {}).get('enabled', False):
+                try:
+                    github_config = config['github']
+                    if github_config.get('auto_upload', True):
+                        # 获取文件完整路径
+                        storage_path = config['file']['storage_path']
+                        if not os.path.isabs(storage_path):
+                            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                            storage_path = os.path.join(project_root, storage_path)
+                        
+                        file_path = os.path.join(storage_path, filename)
+                        
+                        # 初始化GitHub上传器
+                        github_uploader = GitHubUploader(
+                            token=github_config['token'],
+                            repo_name=github_config['repo_name']
+                        )
+                        
+                        # 上传文件到GitHub
+                        if github_uploader.upload_file(
+                            file_path, 
+                            github_config.get('branch', 'main'),
+                            github_config.get('upload_path', '')
+                        ):
+                            # 获取GitHub文件URL
+                            github_file_url = github_uploader.get_file_url(
+                                filename, 
+                                github_config.get('upload_path', '')
+                            )
+                            github_info = {
+                                "uploaded": True,
+                                "github_url": github_file_url,
+                                "repo": github_config['repo_name'],
+                                "branch": github_config.get('branch', 'main'),
+                                "upload_path": github_config.get('upload_path', '')
+                            }
+                            logger.info(f"文件已成功上传到GitHub: {github_file_url}")
+                        else:
+                            github_info = {
+                                "uploaded": False,
+                                "error": "GitHub上传失败"
+                            }
+                            logger.error("GitHub上传失败")
+                        
+                        github_uploader.close()
+                        
+                except Exception as e:
+                    github_info = {
+                        "uploaded": False,
+                        "error": f"GitHub上传异常: {str(e)}"
+                    }
+                    logger.error(f"GitHub上传异常: {e}")
+            else:
+                github_info = {
+                    "uploaded": False,
+                    "reason": "GitHub功能未启用"
+                }
+            
             return jsonify({
                 "code": 200,
                 "msg": "成功",
                 "fileUrl": file_url,
+                "github": github_info,
                 "data": {
                     "filename": filename,
                     "record_count": len(processed_data),
-                    "recent_days": recent_days
+                    "recent_days": recent_days,
+                    "data_type": "当天数据" if recent_days == 0 else f"最近{recent_days}天数据"
                 }
             })
             

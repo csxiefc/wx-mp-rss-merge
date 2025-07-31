@@ -65,24 +65,39 @@ class DatabaseManager:
     def get_recent_articles(self, mp_id: str, recent_days: int) -> List[Dict[str, Any]]:
         """获取指定公众号最近几天的文章"""
         try:
-            # 计算时间范围
-            end_time = datetime.now()
-            start_time = end_time - timedelta(days=recent_days)
-            
-            # 转换为时间戳
-            start_timestamp = int(start_time.timestamp())
-            end_timestamp = int(end_time.timestamp())
-            
             with self.connection.cursor() as cursor:
-                sql = """
-                SELECT * FROM articles 
-                WHERE mp_id = %s 
-                AND publish_time >= %s 
-                AND publish_time <= %s 
-                AND status = 1
-                ORDER BY publish_time DESC
-                """
-                cursor.execute(sql, (mp_id, start_timestamp, end_timestamp))
+                if recent_days == 0:
+                    # 获取当天的数据，使用MySQL的时区转换函数
+                    sql = """
+                    SELECT * FROM articles 
+                    WHERE mp_id = %s 
+                    AND publish_time >= UNIX_TIMESTAMP(CONVERT_TZ(CURDATE(), 'SYSTEM', '+08:00'))
+                    AND publish_time < UNIX_TIMESTAMP(CONVERT_TZ(CURDATE() + INTERVAL 1 DAY, 'SYSTEM', '+08:00'))
+                    AND status = 1
+                    ORDER BY publish_time DESC
+                    """
+                    cursor.execute(sql, (mp_id,))
+                    logger.info(f"获取当天数据: 使用MySQL时区转换查询")
+                else:
+                    # 获取最近几天的数据，使用Python计算时间范围
+                    end_time = datetime.now()
+                    start_time = end_time - timedelta(days=recent_days)
+                    
+                    # 转换为时间戳
+                    start_timestamp = int(start_time.timestamp())
+                    end_timestamp = int(end_time.timestamp())
+                    
+                    sql = """
+                    SELECT * FROM articles 
+                    WHERE mp_id = %s 
+                    AND publish_time >= %s 
+                    AND publish_time <= %s 
+                    AND status = 1
+                    ORDER BY publish_time DESC
+                    """
+                    cursor.execute(sql, (mp_id, start_timestamp, end_timestamp))
+                    logger.info(f"获取最近{recent_days}天数据: {start_time.strftime('%Y-%m-%d')} 到 {end_time.strftime('%Y-%m-%d')}")
+                
                 return cursor.fetchall()
         except Exception as e:
             logger.error(f"获取articles数据失败: {e}")

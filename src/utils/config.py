@@ -8,6 +8,7 @@
 import os
 import yaml
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,13 @@ def load_config():
     try:
         config_path = get_config_path()
         with open(config_path, 'r', encoding='utf-8') as file:
-            config = yaml.safe_load(file)
+            config_content = file.read()
+        
+        # 替换环境变量
+        config_content = _replace_env_vars(config_content)
+        
+        # 解析YAML
+        config = yaml.safe_load(config_content)
         
         # 根据环境自动设置URL前缀
         config = _set_url_prefix(config)
@@ -33,6 +40,29 @@ def load_config():
     except Exception as e:
         logger.error(f"加载配置文件失败: {e}")
         raise
+
+def _replace_env_vars(content):
+    """
+    替换配置文件中的环境变量
+    
+    Args:
+        content: 配置文件内容
+        
+    Returns:
+        str: 替换后的内容
+    """
+    # 匹配 ${VAR_NAME} 格式的环境变量
+    pattern = r'\$\{([^}]+)\}'
+    
+    def replace_var(match):
+        var_name = match.group(1)
+        var_value = os.getenv(var_name)
+        if var_value is None:
+            logger.warning(f"环境变量 {var_name} 未设置，使用空字符串")
+            return '""'
+        return var_value
+    
+    return re.sub(pattern, replace_var, content)
 
 def _set_url_prefix(config):
     """根据环境设置URL前缀"""

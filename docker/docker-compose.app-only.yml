@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 微信公众号RSS合并服务（仅应用）
+  wx-mp-rss:
+    build: .
+    container_name: wx-mp-rss-service
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 挂载配置文件，方便修改配置
+      - ./config:/app/config:ro
+      # 挂载存储目录，持久化文件
+      - ./storage:/app/storage
+      # 挂载日志文件
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  # 如果需要持久化数据，可以添加卷
+  app_storage:
+    driver: local 

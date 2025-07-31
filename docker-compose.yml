@@ -1,0 +1,121 @@
+services:
+
+  # 使用现有的MySQL8服务
+  mysql8:
+    image: mysql:8.3.0
+    container_name: mysql8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: chan123456Aa
+      MYSQL_DATABASE: wewe-rss
+      MYSQL_USER: wxmp
+      MYSQL_PASSWORD: wxmp123
+      # 设置时区
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - werss-net
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-uwxmp", "-pwxmp123"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  # We-MP-RSS 服务（连接上述MySQL）
+  we-mp-rss:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rachelos/we-mp-rss:latest
+    container_name: we-mp-rss
+    restart: unless-stopped
+    depends_on:
+      mysql8:
+        condition: service_healthy  # 等待MySQL就绪[3,5](@ref)
+    ports:
+      - "8001:8001"                 # Web管理后台端口
+    environment:
+      # 数据库连接（指向mysql8服务）
+      DB: "mysql+pymysql://wxmp:wxmp123@mysql8:3306/wewe-rss?charset=utf8mb4"
+      # 管理后台认证
+      USERNAME: "admin1"              # 自定义管理员账号
+      PASSWORD: "chan123456Aa"   # 管理后台密码
+      # 抓取策略（防微信风控）
+      INTERVAL: "3600"               # 抓取间隔（秒），建议≥3600[6,7](@ref)
+      MAX_PAGE: "2"                  # 单次抓取最大页数（默认每页10条）
+      MODEL: "web"                   # 采集模式：api（更稳定）或web
+      # RSS配置
+      ENABLE_GLOBAL_FEED: "True"
+      RSS_BASE_PATH: "/rss"
+      APPEND_SLASH: "True"
+      RSS_BASE_URL: "http://106.13.63.117:8001/"  # 公网访问时必填
+      RSS_TITLE: "My WeRSS Hub"      # RSS源标题
+
+      RSS_FULL_CONTEXT: "True"
+      #RSS_CDATA: "True"
+      # 核心配置：启用全文抓取
+      EXTRACT_CONTENT: "True"  # 强制抓取正文内容
+      EXTRACT_ENGINE: "readability"  # 使用稳定解析引擎
+      EXTRACT_OPTIONS: '{"contentThreshold": 0.5}'  # 降低内容过滤阈值
+      # 可选：防止被公众号屏蔽
+      USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+      # 增强防屏蔽
+      FETCH_TIMEOUT: "30"  # 增加超时时间
+      RETRY_COUNT: "3"     # 失败重试
+
+      # 是否自动检查未采集文章内容
+      GATHER.CONTENT_AUTO_CHECK: "true"
+      # 设置时区
+      TZ: "Asia/Shanghai"
+    volumes:
+      - ./werss_data:/app/data       # 持久化会话Token和日志
+      - ./cache:/tmp/cache  
+    networks:
+      - werss-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  # 微信公众号RSS合并服务
+  wx-mp-rss-merge:
+    image: wx-mp-rss-merge:latest
+    container_name: wx-mp-rss-merge
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      # 设置时区
+      - TZ=Asia/Shanghai
+    volumes:
+      # 挂载配置文件，方便修改配置
+      - ./wx-mp-rss-merge/config:/app/config:ro
+      # 挂载存储目录，持久化文件
+      - ./wx-mp-rss-merge/storage:/app/storage
+      # 挂载日志文件
+      - ./wx-mp-rss-merge/logs:/app/logs
+    user: "0:0"
+    networks:
+      - werss-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - mysql8
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  werss-net:
+    driver: bridge

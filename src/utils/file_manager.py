@@ -37,9 +37,23 @@ class FileManager:
                 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
                 self.storage_path = os.path.join(project_root, self.storage_path)
             
+            # 确保路径是绝对路径，并规范化
+            self.storage_path = os.path.abspath(self.storage_path)
+            # 移除路径中的 ./ 等冗余部分
+            self.storage_path = os.path.normpath(self.storage_path)
+            
+            logger.info(f"存储路径: {self.storage_path}")
+            
             if not os.path.exists(self.storage_path):
-                os.makedirs(self.storage_path)
+                os.makedirs(self.storage_path, mode=0o755, exist_ok=True)
                 logger.info(f"创建存储目录: {self.storage_path}")
+            else:
+                # 确保目录有正确的权限
+                try:
+                    os.chmod(self.storage_path, 0o755)
+                    logger.info(f"存储目录已存在: {self.storage_path}")
+                except PermissionError:
+                    logger.warning(f"无法修改目录权限: {self.storage_path}")
         except Exception as e:
             logger.error(f"创建存储目录失败: {e}")
             raise
@@ -54,12 +68,25 @@ class FileManager:
             filename = self.generate_filename()
             file_path = os.path.join(self.storage_path, filename)
             
+            # 确保路径规范化
+            file_path = os.path.normpath(file_path)
+            logger.info(f"保存文件路径: {file_path}")
+            
             # 确保数据是UTF-8编码
             json_data = json.dumps(data, ensure_ascii=False, indent=2)
+            
+            # 确保目录存在
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             
             # 覆盖现有文件
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(json_data)
+            
+            # 设置文件权限（如果可能）
+            try:
+                os.chmod(file_path, 0o644)
+            except PermissionError:
+                logger.warning(f"无法设置文件权限: {file_path}")
             
             logger.info(f"JSON文件保存成功: {file_path}")
             return filename

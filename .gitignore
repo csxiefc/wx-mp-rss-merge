@@ -129,22 +129,54 @@ dmypy.json
 .pyre/
 
 # 项目特定文件
-storage/
+# 日志文件
 *.log
 app.log
-config/local_config.yaml
+logs/
 
-# IDE文件
-.vscode/
-.idea/
+# 临时文件
+*.tmp
+*.temp
 *.swp
 *.swo
 *~
 
-# 操作系统文件
+# 存储文件（保留最新的）
+storage/*.json
+!storage/result.json
+
+# 测试文件
+testres/*.txt
+testres/*.json
+
+# 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE文件
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 系统文件
 .DS_Store
-Thumbs.db 
+Thumbs.db
+desktop.ini
 
+# 环境变量文件
+.env
+.env.local
+.env.production
 
-config/
-docker/
+# 临时文档
+GITHUB_FEATURE_SUMMARY.md
+DEPLOYMENT_EXISTING.md
+
+# 安全相关文件
+*.key
+*.pem
+*.p12
+*.pfx
